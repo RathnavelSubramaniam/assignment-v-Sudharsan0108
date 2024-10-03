@@ -1,0 +1,59 @@
+---
+title: "Untitled"
+author: "Sudharasan"
+date: "2024-10-03"
+output: html_document
+---
+
+#1.	We will now try to predict per capita crime rate in the Boston data set.
+
+#(a)Try out some of the regression methods explored in this chapter, such as best subset selection, the lasso, ridge regression, and PCR. Present and discuss results for the approaches that you consider. 
+
+
+```{r}
+library(ISLR)
+library(MASS)
+library(glmnet)
+data(Boston)
+set.seed(1)
+```
+
+```{r}
+x_boston =  model.matrix(crim ~ . -1, data = Boston)
+y_boston  = Boston$crim
+train_index = sample(1:nrow(x_boston), nrow(x_boston) / 2)
+cv_boston = cv.glmnet(x_boston[train_index,], y_boston[train_index], alpha = 1)
+l_lambda_min_boston = l_cv_boston$lambda.min
+l_lambda_min_boston
+coefficients(cv_boston)
+```
+```{r}
+cv1_boston = cv.glmnet(x_boston[train_index,], y_boston[train_index], alpha = 0)
+r_lambda_min_boston = cv1_boston$lambda.min
+r_lambda_min_boston
+library(pls)
+```
+```{r}
+pcr_boston =  pcr(crim ~ . , data = Boston[train_index,], scale = TRUE, validation = "CV")
+summary(pcr_boston)
+```
+
+# (b) Propose a model (or set of models) that seem to perform well on this data set, and justify your answer. Make sure that you are evaluating model performance using validation set error, crossvalidation, or some other reasonable alternative, as opposed to using training error.
+
+```{r}
+grid = 10^seq(10,-2,length=100)
+fit = glmnet(x_boston[train_index,], y_boston[train_index], lambda=grid, alpha=1)
+predict1 = predict(fit,s=l_lambda_min_boston,newx=x_boston[-train_index,])
+mse = mean((predict1 - y_boston[-train_index])^2)
+mse
+r_fit <- glmnet(x_boston[train_index,], y_boston[train_index], lambda=grid, alpha=0)
+r_predict <- predict(r_fit,s=r_lambda_min_boston,newx=x_boston[-train_index,])
+r_mse <- mean((r_predict - y_boston[-train_index])^2)
+r_mse
+```
+```{r}
+pcr_predict <- predict(pcr_boston,x_boston[-train_index,],ncomp =7)
+pcr_mse <- mean((pcr_predict - y_boston[-train_index])^2)
+pcr_mse
+```
+
